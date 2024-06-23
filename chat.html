@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <!-- Mesajların gösterileceği yer -->
+
+    <div id="messages"></div>
+
+    <!-- Mesaj gönderme -->
+
+    <div id="sendMsg">
+
+        <input type="text" id="msgTxt" placeholder="Enter your message">
+
+        <input type="submit" id="msgBtn" value="Send" onclick="module.sendMsg()">
+
+    </div>
+
+    <script>
+
+        // Modül nesnesi oluşturma
+
+        module = {};
+
+    </script>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+
+        import { getDatabase, ref, set, remove, onChildAdded, onChildRemoved } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
+
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+
+        const db = getDatabase(app);
+
+        // Değişkenler
+
+        var msgTxt = document.getElementById('msgTxt'); // Mesaj metni için input
+
+        var sender; // Gönderici adı
+
+        // sessionStorage'da gönderen adı varsa al, yoksa kullanıcıdan isim iste ve sessionStorage'a kaydet
+
+        if(sessionStorage.getItem('sender')){
+
+            sender = sessionStorage.getItem('sender');
+
+        }
+
+        else{
+
+            sender = prompt("Please enter your name.");
+
+            sessionStorage.setItem('sender', sender); 
+
+        }
+
+        // Mesaj gönderme
+
+        module.sendMsg = function sendMsg() {
+
+            var msg = msgTxt.value; // Input'tan mesaj alma
+
+            var timestamp = new Date().getTime(); // Zaman damgası
+
+            // Firebase'e mesajı kaydetme
+
+            set(ref(db, "messages/"+timestamp),{
+
+                msg : msg,
+
+                sender : sender
+
+            })
+
+        }
+
+        // Mesajları alma
+
+        onChildAdded(ref(db, "messages"), (data)=>{
+
+            // Mesaj gönderen kişi ise, mesajı sağa yaslama ve silme butonu ekleme
+
+            if(data.val().sender == sender){
+
+                messaging.innerHTML += "<div style = justify-content:end class=outer id=" + data.key + "><div id = inner class=me>you : " + data.val().msg + "<button id = dltMsg onclick=module.dltMsg(" + data.key + ")>Delete</button></div></div>";
+
+            }
+
+            else{
+
+                // Diğer kullanıcıların mesajlarını sola yaslama
+
+                messages.innerHTML += "<div class = outer id=" + data.key + "><div id = inner class = notMe>" + data.val().sender + " : " + data.val().msg + "</div></div>";
+
+            }
+
+        })
+
+        // Mesaj silme
+
+        module.dltMsg = function dltMsg(key) {
+
+            remove(ref(db, "messages/" + key));
+
+        }
+
+        // Mesaj silindiğinde veri tabanından kaldırma
+
+        onChildRemoved(ref(db, "messages"), (data) => {
+
+            var msgBox = document.getElementById(data.key);
+
+            messages.removeChild(msgBox);
+
+        })
+
+    </script>
+
+</body>
+
+</html>
